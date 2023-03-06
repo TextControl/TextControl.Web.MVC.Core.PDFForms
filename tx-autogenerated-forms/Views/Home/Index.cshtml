@@ -1,0 +1,102 @@
+﻿@model string[]
+
+@{
+    ViewData["Title"] = "Available PDF Forms";
+}
+
+<div class="row">
+    <div class="col-12">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Template</th>
+                    <th scope="col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(string file in Model) {
+                <tr>
+                    <th scope="row">@System.IO.Path.GetFileName(file)</th>
+                        <td><input class="btn btn-primary" type="button" value="Create Form ➜" onclick="createHtmlForm('@System.IO.Path.GetFileName(file)')" /></td>
+                 </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-6">
+        <div id="smartForm"></div>
+    </div>
+</div>
+<script>
+    function createHtmlForm(filename) {
+
+        var bDocument;
+        var serviceURL = "@Url.Action("GetFormFields", "Home")";
+      
+        $.ajax({
+            type: "GET",
+            url: serviceURL + "?filename=" + filename,
+            success: successFunc,
+            error: errorFunc
+        });
+
+        function successFunc(data, status) {
+
+            $("#smartForm").empty();
+
+            var fieldset = $("<form><fieldset><legend>Form</legend></fieldset></form>").appendTo("#smartForm");
+
+            // loop through all fields and add input elements to dynamicly created form
+            data.forEach(formField => {
+
+                switch (formField.typeName) {
+
+                    case "SmartTextFormField":
+                        fieldset.append($("<div class='form-group'><label for='" + formField.name + "'>" + formField.displayName.toUpperCase() + "</label><input placeholder='Type in " + formField.name + "' class='form-control' name='" + formField.name + "' id='" + formField.name + "' type='text' value='" + formField.text + "' /></div>"));
+                        break;
+
+                    case "SmartCheckboxField":
+
+                        var checked = "";
+
+                        if (formField.Checked === true)
+                            checked = "checked";
+
+                        fieldset.append($("<div class='form-check'><input " + checked + " class='form-check-input' name='" + formField.name + "' id='" + formField.name + "' type='checkbox' /><label class='form-check-label' for='" + formField.name + "'>" + formField.displayName.toUpperCase() + "</label></div>"));
+                        break;
+
+                    case "SmartDateField":
+                        fieldset.append($("<div class='form-group'><label for='" + formField.name + "'>" + formField.displayName.toUpperCase() + "</label><input class='form-control' name='" + formField.name + "' id='" + formField.name + "' type='date' value='" + formField.date + "' /></div>"));
+                        break;
+
+                    case "SmartDropdownField":
+
+                        console.log("drop down");
+
+                        var items;
+
+                        formField.items.forEach(item => {
+
+                            if (item === formField.text)
+                                items += "<option selected>" + item + "</option>"
+                            else
+                                items += "<option>" + item + "</option>"
+                        });
+
+                        fieldset.append($("<div class='form-group'><label for='" + formField.name + "'>" + formField.displayName.toUpperCase() + "</label><select class='form-control' name='" + formField.name + "' id='" + formField.name + "'>" + items + "</div></div>"));
+                        break;
+
+                }
+
+            });
+        }
+
+        function errorFunc() {
+            alert("Error");
+        }
+
+    }
+</script>
